@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # 1. FRONTEND (React)
+  frontend:
+    build: ./frontend
+    container_name: ecosystem-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - app-network
+
+  # 2. BACKEND BFF (Node.js)
+  backend-bff:
+    build: ./backend-bff
+    container_name: ecosystem-bff
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend-bff:/app
+      - /app/node_modules
+    environment:
+      - PORT=3000
+      # Apuntamos al contenedor de laravel por su nombre de servicio
+      - MARKET_ENGINE_URL=http://market-engine:8000
+    networks:
+      - app-network
+    depends_on:
+      - market-engine
+
+  # 3. MARKET ENGINE (Laravel)
+  market-engine:
+    build: ./market-engine
+    container_name: ecosystem-engine
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./market-engine:/var/www
+    environment:
+      - DB_CONNECTION=mysql
+      - DB_HOST=market-db   
+      - DB_PORT=3306
+      - DB_DATABASE=laravel_db
+      - DB_USERNAME=laravel_user
+      - DB_PASSWORD=secret
+    # -------------------
+    networks:
+      - app-network
+    depends_on:
+      - market-db
+
+  # 4. DATABASE (MySQL)
+  market-db:
+    image: mysql:8.0
+    container_name: ecosystem-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: laravel_db
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_PASSWORD: secret
+      MYSQL_USER: laravel_user
+    volumes:
+      - dbdata:/var/lib/mysql
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  dbdata:
+    driver: local

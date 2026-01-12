@@ -13,8 +13,9 @@ return new class extends Migration
     {
         Schema::create('securities', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('security_type_id')->constrained('security_types')->cascadeOnDelete();
             $table->string('symbol')->unique();
+            $table->string('name');
+            $table->foreignId('security_type_id')->constrained('security_types')->cascadeOnDelete();
             $table->timestamps();
         });
     }

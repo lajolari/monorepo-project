@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
-// Si no tienes lucide-react, usa texto simple o instálalo: npm i lucide-react
-import { RefreshCw, ArrowUpRight, ArrowDownRight, Globe, Coins } from 'lucide-react';
+import { RefreshCw, TrendingUp, DollarSign, Activity } from 'lucide-react';
 
+// 1. Ajustamos la interface para que coincida con tu API real de Laravel
 interface MarketItem {
+  id: number;
   symbol: string;
+  name: string;
+  category: string;
   price: number;
   currency: string;
-  type: string;
-  source_adapter: string;
-  updated_at: string;
-  is_stale: boolean;
+  last_updated: string | null;
 }
 
 const MarketData: React.FC = () => {
@@ -19,7 +19,7 @@ const MarketData: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Llamamos a NUESTRO Node.js (BFF), no directo a Laravel
+      // Recuerda: El BFF (Node) redirige esto al Laravel
       const response = await fetch('http://localhost:3000/api/market');
       const json = await response.json();
       setData(json);
@@ -32,63 +32,107 @@ const MarketData: React.FC = () => {
 
   useEffect(() => { fetchData(); }, []);
 
+  // Función auxiliar para formatear dinero
+  const formatMoney = (amount: number) => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  };
+
   return (
     <section className="py-20 px-4 max-w-5xl mx-auto">
-      {/* Título de la Sección */}
       <h2 className="text-3xl font-bold text-center text-zinc-100 mb-12">
         Integración de Sistemas en Tiempo Real
       </h2>
 
       <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl">
-        {/* Encabezado del Panel */}
+        {/* Encabezado */}
         <div className="p-6 border-b border-zinc-800 bg-zinc-900/80 flex justify-between items-center">
           <div>
             <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              <Activity className="w-5 h-5 text-emerald-500" />
               Motor de Monitoreo de Mercado
-              {/* Indicador de estado opcional */}
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             </h3>
             <p className="text-zinc-400 text-sm mt-1">
-              Agregación en tiempo real vía Microservicios
+              Live Data vía Laravel Engine & Node BFF
             </p>
           </div>
           
-          {/* Botón de recarga (opcional si lo tenías) */}
-          <button className="p-2 hover:bg-zinc-800 rounded-lg transition-colors text-zinc-400 hover:text-white">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
+          <button 
+            onClick={fetchData}
+            disabled={loading}
+            className="p-2 hover:bg-zinc-800 rounded-lg transition-colors text-zinc-400 hover:text-white disabled:opacity-50"
+          >
+            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
 
-        {/* Tabla de Datos */}
+        {/* Tabla */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-zinc-400">
             <thead className="bg-zinc-950/50 text-xs uppercase font-medium text-zinc-500">
               <tr>
                 <th className="px-6 py-4">Activo</th>
-                <th className="px-6 py-4">Precio</th>
-                <th className="px-6 py-4">Estrategia</th>
-                <th className="px-6 py-4 text-right">Última Sinc.</th>
+                <th className="px-6 py-4">Precio Actual</th>
+                <th className="px-6 py-4">Categoría</th>
+                <th className="px-6 py-4 text-right">Última Actualización</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800">
-              {/* Estado de Carga / Sin Datos */}
-              <tr>
-                <td colSpan="4" className="px-6 py-12 text-center">
-                  <p className="text-zinc-500 mb-4">
-                    Sin datos disponibles.
-                  </p>
-                  <button 
-                    // onClick={handleSync} -> Aquí conectaremos tu función
-                    className="text-emerald-400 hover:text-emerald-300 text-sm font-medium hover:underline transition-all"
-                  >
-                    Ejecutar Sincronización
-                  </button>
-                </td>
-              </tr>
               
-              {/* Aquí irían las filas (rows) cuando tengamos datos */}
+              {/* CASO 1: CARGANDO */}
+              {loading && data.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center text-zinc-500 animate-pulse">
+                    Conectando con microservicios...
+                  </td>
+                </tr>
+              )}
+
+              {/* CASO 2: SIN DATOS (Y no está cargando) */}
+              {!loading && data.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center">
+                    <p className="text-zinc-500 mb-4">No se encontraron datos de mercado.</p>
+                    <button onClick={fetchData} className="text-emerald-400 hover:underline">
+                      Reintentar conexión
+                    </button>
+                  </td>
+                </tr>
+              )}
+
+              {/* CASO 3: ¡DATOS REALES! 🎉 */}
+              {data.map((item) => (
+                <tr key={item.id} className="hover:bg-zinc-800/30 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${
+                        item.category === 'crypto' ? 'bg-indigo-500/10 text-indigo-400' : 'bg-blue-500/10 text-blue-400'
+                      }`}>
+                        {item.category === 'crypto' ? <DollarSign className="w-4 h-4" /> : <TrendingUp className="w-4 h-4" />}
+                      </div>
+                      <div>
+                        <div className="font-medium text-zinc-200">{item.symbol}</div>
+                        <div className="text-xs text-zinc-500">{item.name}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 font-mono text-zinc-200">
+                    {formatMoney(item.price)}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      item.category === 'crypto' 
+                        ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' 
+                        : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                    }`}>
+                      {item.category.toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right font-mono text-xs text-zinc-500">
+                    {item.last_updated ? new Date(item.last_updated).toLocaleTimeString() : 'N/A'}
+                  </td>
+                </tr>
+              ))}
+
             </tbody>
           </table>
         </div>

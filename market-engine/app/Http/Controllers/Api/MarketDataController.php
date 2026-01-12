@@ -10,27 +10,22 @@ class MarketDataController extends Controller
 {
     public function index(): JsonResponse
     {
-        // Traemos las acciones con su último precio y tipo
-        // Asumimos que tienes las relaciones definidas en los modelos
-        $securities = Security::with(['lastPrice', 'securityType'])->get();
+
+        $securities = Security::with(['latestPrice', 'type'])->get();
 
         $data = $securities->map(function ($security) {
             return [
+                'id' => $security->id,
                 'symbol' => $security->symbol,
-                'price' => (float) $security->lastPrice?->last_price,
-                'currency' => $security->lastPrice?->currency ?? 'USD',
-                'type' => $security->securityType?->slug,
-                // Lógica simple para determinar el "Adapter" basado en el tipo
-                'source_adapter' => $security->securityType?->slug === 'crypto' ? 'CoinGeckoAdapter' : 'FrankfurterAdapter',
-                'updated_at' => $security->lastPrice?->created_at->diffForHumans(),
-                // Si el dato tiene más de 1 hora, es "stale" (viejo)
-                'is_stale' => $security->lastPrice?->created_at->lt(now()->subHour())
+                'name' => $security->name,
+                'category' => $security->type ? $security->type->slug : 'unknown',
+                
+                'price' => $security->latestPrice ? (float)$security->latestPrice->last_price : 0,
+                'currency' => 'USD', 
+                'last_updated' => $security->latestPrice ? $security->latestPrice->as_of_date : null,
             ];
         });
 
-        return response()->json($data)
-            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
-            ->header('Cache-Control', 'post-check=0, pre-check=0')
-            ->header('Pragma', 'no-cache');
+        return response()->json($data);
     }
 }

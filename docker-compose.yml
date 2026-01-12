@@ -33,20 +33,15 @@ services:
 
   # 3. MARKET ENGINE (Laravel)
   market-engine:
-    build: ./market-engine
+    build: 
+      context: ./market-engine
+      dockerfile: Dockerfile
     container_name: ecosystem-engine
+    command: php artisan serve --host=0.0.0.0 --port=8000
     ports:
       - "8000:8000"
     volumes:
-      - ./market-engine:/var/www
-    environment:
-      - DB_CONNECTION=mysql
-      - DB_HOST=market-db   
-      - DB_PORT=3306
-      - DB_DATABASE=laravel_db
-      - DB_USERNAME=laravel_user
-      - DB_PASSWORD=secret
-    # -------------------
+      - ./market-engine:/var/www/html
     networks:
       - app-network
     depends_on:

@@ -47,7 +47,7 @@ Este proyecto utiliza Docker Compose para orquestar todo el entorno con un solo 
 ## 1. Clonar el repositorio
 
 ```
-git clone <url-del-repo>
+git clone https://github.com/lajolari/monorepo-project.git
 cd monolito-app
 ```
 
